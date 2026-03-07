@@ -62,6 +62,71 @@ This module provisions a complete RAG (Retrieval-Augmented Generation) architect
 5. **Safety Controls**: Guardrails filter inputs and outputs for content safety, denied topics, and sensitive information.
 6. **Observability**: Model invocation logging captures all interactions to S3 for auditing and analysis.
 
+### Component Diagram
+
+```mermaid
+flowchart TB
+    subgraph Agents["Bedrock Agents"]
+        AGT["Agent\n(Claude, Titan, etc.)"]
+        AG["Action Groups\n(Lambda Functions)"]
+    end
+
+    subgraph KnowledgeBases["Knowledge Bases (RAG)"]
+        KB["Knowledge Base"]
+        S3D["S3 Data Sources\n(Documents)"]
+    end
+
+    subgraph VectorStore["Vector Storage"]
+        OSS["OpenSearch Serverless\n(Vector Index)"]
+    end
+
+    subgraph Models["Foundation Models"]
+        FM["LLM Inference\n(Model Access)"]
+        EMB["Embedding Model\n(Titan Embed)"]
+    end
+
+    subgraph Safety["Guardrails"]
+        CF["Content Filters"]
+        DT["Denied Topics"]
+        PII["PII Filters"]
+    end
+
+    subgraph Observability["Logging"]
+        LOG["Model Invocation\nLogging"]
+        S3L["S3 Bucket\n(Logs)"]
+    end
+
+    AGT --> FM
+    AGT --> AG
+    AGT --> KB
+    AGT --> CF
+    KB --> S3D
+    KB --> EMB
+    EMB --> OSS
+    CF --> DT
+    CF --> PII
+    LOG --> S3L
+
+    style Agents fill:#FF9900,stroke:#FF9900,color:#fff
+    style KnowledgeBases fill:#1A73E8,stroke:#1A73E8,color:#fff
+    style VectorStore fill:#DD344C,stroke:#DD344C,color:#fff
+    style Models fill:#8C4FFF,stroke:#8C4FFF,color:#fff
+    style Safety fill:#3F8624,stroke:#3F8624,color:#fff
+    style Observability fill:#0078D4,stroke:#0078D4,color:#fff
+    style AGT fill:#FF9900,stroke:#cc7a00,color:#fff
+    style AG fill:#FF9900,stroke:#cc7a00,color:#fff
+    style KB fill:#1A73E8,stroke:#1459b3,color:#fff
+    style S3D fill:#1A73E8,stroke:#1459b3,color:#fff
+    style OSS fill:#DD344C,stroke:#b02a3d,color:#fff
+    style FM fill:#8C4FFF,stroke:#6b3dcc,color:#fff
+    style EMB fill:#8C4FFF,stroke:#6b3dcc,color:#fff
+    style CF fill:#3F8624,stroke:#2d6119,color:#fff
+    style DT fill:#3F8624,stroke:#2d6119,color:#fff
+    style PII fill:#3F8624,stroke:#2d6119,color:#fff
+    style LOG fill:#0078D4,stroke:#005a9e,color:#fff
+    style S3L fill:#0078D4,stroke:#005a9e,color:#fff
+```
+
 ## Features
 
 - **Knowledge Bases**: Create multiple knowledge bases with S3 data sources and configurable chunking strategies
