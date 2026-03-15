@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>terraform-aws-bedrock-platform — Architecture</title>
+<style>
+:root{--ink:#0b0c0b;--paper:#f5f2eb;--accent:#c8420a;--accent2:#e8720c;--mono:'Courier New',monospace;--sans:system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:13px;line-height:1.7;padding:0}
+.container{max-width:1100px;margin:0 auto;padding:32px 48px}
+header{border-bottom:2px solid var(--accent);padding-bottom:24px;margin-bottom:32px}
+h1{font-size:28px;font-family:var(--sans);font-weight:700;letter-spacing:.02em}
+h1 em{font-style:normal;color:var(--accent)}
+.meta{font-size:10px;color:rgba(255,255,255,.4);margin-top:6px;letter-spacing:.05em}
+.badge{display:inline-block;font-size:9px;padding:2px 8px;border-radius:2px;margin-right:4px;letter-spacing:.04em}
+.badge-lang{background:rgba(200,66,10,.2);color:var(--accent);border:1px solid rgba(200,66,10,.4)}
+.badge-cloud{background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1)}
+.badge-cat{background:rgba(232,114,12,.15);color:var(--accent2);border:1px solid rgba(232,114,12,.3)}
+h2{font-size:16px;font-family:var(--sans);color:var(--accent);margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid rgba(200,66,10,.3);text-transform:uppercase;letter-spacing:.04em}
+h3{font-size:13px;font-family:var(--sans);color:var(--paper);margin:20px 0 8px}
+p,li{font-size:12px;line-height:1.8;color:rgba(255,255,255,.75)}
+ul{padding-left:20px;margin:8px 0}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:16px 0}
+.card{border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:16px;background:rgba(255,255,255,.02)}
+.card-label{font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.card-value{font-size:14px;font-weight:700;color:var(--paper)}
+.diagram{border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:24px;margin:16px 0;background:rgba(255,255,255,.02);overflow-x:auto}
+.diagram svg{width:100%;height:auto}
+.flow-box{display:inline-block;border:1px solid var(--accent);border-radius:3px;padding:6px 14px;margin:4px;font-size:10px;color:var(--paper);background:rgba(200,66,10,.08)}
+.flow-arrow{color:var(--accent);margin:0 8px;font-size:14px}
+.checklist{list-style:none;padding:0}
+.checklist li{padding:4px 0;font-size:11px}
+.checklist li::before{content:'&#10003; ';color:var(--accent);font-weight:bold}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11px}
+th{text-align:left;padding:8px;border-bottom:2px solid var(--accent);color:var(--accent);font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+td{padding:8px;border-bottom:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.7)}
+footer{margin-top:48px;padding-top:16px;border-top:2px solid var(--accent);font-size:9px;color:rgba(255,255,255,.3)}
+footer a{color:var(--accent);text-decoration:none}
+@media print{body{background:#fff;color:#000}h2{color:#c8420a}.card{border-color:#ccc}}
+@media(max-width:768px){.container{padding:16px}.card-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>terraform-aws-bedrock-platform <em>Architecture</em></h1>
+  <div class="meta">
+    <span class="badge badge-lang">HCL / Terraform</span>
+    <span class="badge badge-cloud">AWS</span>
+    <span class="badge badge-cat">Infrastructure / IaC</span>
+  </div>
+</header>
+
+<!-- 1. Executive Summary -->
+<h2>Executive Summary</h2>
+<p>
+  This module deploys a comprehensive Amazon Bedrock AI platform implementing a full Retrieval-Augmented Generation (RAG) architecture. It provisions Knowledge Bases with S3 data sources and configurable chunking, Bedrock Agents with foundation model access and Lambda-backed action groups, content safety Guardrails (content filters, denied topics, PII detection), OpenSearch Serverless vector storage, model invocation logging, and least-privilege IAM roles for each component. It enables organizations to rapidly stand up enterprise-grade generative AI applications with built-in safety controls and observability.
+</p>
+
+<!-- 2. Overview Cards -->
+<h2>Overview</h2>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-label">Resources Created</div>
+    <div class="card-value">14+</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Variables Count</div>
+    <div class="card-value">9</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Outputs Count</div>
+    <div class="card-value">15</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Provider</div>
+    <div class="card-value">hashicorp/aws</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Terraform Version</div>
+    <div class="card-value">&gt;= 1.5.0</div>
+  </div>
+</div>
+
+<!-- 3. Architecture Diagram -->
+<h2>Architecture Diagram</h2>
+<div class="diagram">
+  <div style="text-align:center">
+    <span class="flow-box">End Users / Applications</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">Bedrock Agents (Claude, Titan)</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">Foundation Models (LLM Inference)</span>
+    <br/><br/>
+    <span class="flow-box">Agents</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">Action Groups (Lambda)</span>
+    &nbsp;&nbsp;
+    <span class="flow-box">Agents</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">Guardrails</span>
+    <br/><br/>
+    <span class="flow-box">Guardrails</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">Content Filters</span>
+    &nbsp;&nbsp;
+    <span class="flow-box">Guardrails</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">Denied Topics</span>
+    &nbsp;&nbsp;
+    <span class="flow-box">Guardrails</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">PII Filters</span>
+    <br/><br/>
+    <span class="flow-box">Agents</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">Knowledge Bases (RAG)</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">Embedding Model (Titan Embed)</span>
+    <br/><br/>
+    <span class="flow-box">Knowledge Bases</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">S3 Data Sources (Documents)</span>
+    &nbsp;&nbsp;
+    <span class="flow-box">Embeddings</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">OpenSearch Serverless (Vector Store)</span>
+    <br/><br/>
+    <span class="flow-box">Model Invocation Logging</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-box">S3 Bucket (Logs)</span>
+  </div>
+</div>
+
+<!-- 4. Component Breakdown -->
+<h2>Component Breakdown</h2>
+<table>
+  <thead>
+    <tr><th>Resource</th><th>Type</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>aws_bedrock_model_invocation_logging_configuration</td><td>Logging Config</td><td>Captures all model invocations to S3 for audit and analysis</td></tr>
+    <tr><td>aws_bedrockagent_knowledge_base</td><td>Knowledge Base</td><td>RAG knowledge base with vector search via OpenSearch Serverless</td></tr>
+    <tr><td>aws_bedrockagent_data_source</td><td>Data Source</td><td>S3-based document ingestion with configurable chunking strategy</td></tr>
+    <tr><td>aws_bedrockagent_agent</td><td>Agent</td><td>Conversational AI agent with foundation model and instructions</td></tr>
+    <tr><td>aws_bedrockagent_agent_action_group</td><td>Action Group</td><td>Lambda-backed actions for API calls and tool use</td></tr>
+    <tr><td>aws_bedrockagent_agent_alias</td><td>Agent Alias</td><td>Versioned alias for stable agent invocation endpoint</td></tr>
+    <tr><td>aws_bedrock_guardrail</td><td>Guardrail</td><td>Content safety: content filters, denied topics, PII detection</td></tr>
+    <tr><td>aws_bedrock_guardrail_version</td><td>Guardrail Version</td><td>Immutable version of guardrail configuration</td></tr>
+    <tr><td>aws_opensearchserverless_collection</td><td>OpenSearch Collection</td><td>Serverless vector store for embedding storage and similarity search</td></tr>
+    <tr><td>aws_opensearchserverless_*_policy</td><td>OSS Policies</td><td>Encryption, network, and data access policies for OpenSearch</td></tr>
+    <tr><td>aws_iam_role.knowledge_base</td><td>IAM Role</td><td>Least-privilege role for knowledge base (S3, Bedrock, OpenSearch)</td></tr>
+    <tr><td>aws_iam_role.agent</td><td>IAM Role</td><td>Least-privilege role for agent (Bedrock model access, KB access)</td></tr>
+    <tr><td>aws_iam_role.logging</td><td>IAM Role</td><td>Role for model invocation logging to S3</td></tr>
+  </tbody>
+</table>
+
+<!-- 5. Data Flow -->
+<h2>Data Flow</h2>
+<h3>RAG Ingestion Flow</h3>
+<ol>
+  <li>Documents are uploaded to an S3 bucket configured as a data source for the Knowledge Base.</li>
+  <li>The Knowledge Base ingests documents, splitting them according to the chunking strategy (FIXED_SIZE with configurable max_tokens and overlap_percentage).</li>
+  <li>Each chunk is embedded using the specified embedding model (e.g., Amazon Titan Embed Text v1).</li>
+  <li>Embeddings are stored in the OpenSearch Serverless vector index for efficient similarity search.</li>
+</ol>
+<h3>Query Flow</h3>
+<ol>
+  <li>An application invokes a Bedrock Agent via the agent alias endpoint.</li>
+  <li>The Agent processes the query using its foundation model (e.g., Claude 3 Sonnet) and configured instructions.</li>
+  <li>Guardrails filter the input for content safety, denied topics, and PII before processing.</li>
+  <li>The Agent retrieves relevant context from Knowledge Bases via vector similarity search in OpenSearch.</li>
+  <li>If action groups are configured, the Agent can invoke Lambda functions for external API calls.</li>
+  <li>The foundation model generates a grounded response using retrieved context.</li>
+  <li>Guardrails filter the output before returning it to the user.</li>
+  <li>Model invocation logging captures the full interaction to S3 for auditing.</li>
+</ol>
+
+<!-- 6. Security Controls -->
+<h2>Security Controls</h2>
+<ul>
+  <li><strong>Least-Privilege IAM</strong> &mdash; Automatically generated IAM roles per component (knowledge base, agent, logging) with minimal required permissions.</li>
+  <li><strong>Content Filters</strong> &mdash; Configurable guardrails for HATE, INSULTS, SEXUAL, VIOLENCE, MISCONDUCT with input/output strength levels.</li>
+  <li><strong>Denied Topics</strong> &mdash; Block specific conversation topics with definitions and examples.</li>
+  <li><strong>PII Detection</strong> &mdash; Sensitive information filters with BLOCK or ANONYMIZE actions for PII types.</li>
+  <li><strong>OpenSearch Encryption</strong> &mdash; Encryption policy for the serverless vector collection.</li>
+  <li><strong>OpenSearch Network Policy</strong> &mdash; Network access controls for the vector store.</li>
+  <li><strong>OpenSearch Access Policy</strong> &mdash; Data access policy restricting index operations to the knowledge base role.</li>
+  <li><strong>Model Invocation Logging</strong> &mdash; Complete audit trail of all model interactions stored in S3.</li>
+  <li><strong>Guardrail Versioning</strong> &mdash; Immutable guardrail versions prevent accidental policy changes.</li>
+</ul>
+
+<!-- 7. Industry Adaptation -->
+<h2>Industry Adaptation</h2>
+<table>
+  <thead>
+    <tr><th>Industry</th><th>Use Case</th><th>Key Features Leveraged</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Healthcare</td><td>Medical documentation assistant with PHI protection</td><td>PII filters (ANONYMIZE), content safety guardrails, audit logging</td></tr>
+    <tr><td>Finance</td><td>Compliance Q&A over regulatory documents</td><td>Knowledge bases (RAG), denied topics, model invocation logging</td></tr>
+    <tr><td>Government</td><td>Citizen services chatbot with content safety</td><td>Guardrails, least-privilege IAM, audit trails, denied topics</td></tr>
+    <tr><td>Retail</td><td>Product recommendation and support agent</td><td>Agents with action groups, knowledge bases, Lambda integrations</td></tr>
+    <tr><td>SaaS</td><td>AI-powered documentation search and assistant</td><td>Knowledge bases, embedding models, OpenSearch vector store</td></tr>
+  </tbody>
+</table>
+
+<!-- 8. Production Readiness Checklist -->
+<h2>Production Readiness Checklist</h2>
+<ul class="checklist">
+  <li>Enable model invocation logging (<code>enable_model_invocation_logging = true</code>)</li>
+  <li>Configure guardrails with appropriate content filter strengths for your domain</li>
+  <li>Set up PII filters with ANONYMIZE action for sensitive data handling</li>
+  <li>Define denied topics for off-limits conversation areas</li>
+  <li>Use FIXED_SIZE chunking with appropriate <code>max_tokens</code> for your document types</li>
+  <li>Set <code>overlap_percentage</code> (default 20%) to maintain context across chunks</li>
+  <li>Create agent aliases for stable invocation endpoints (avoid using DRAFT)</li>
+  <li>Review and restrict IAM roles generated by the module</li>
+  <li>Configure OpenSearch Serverless collection with appropriate capacity</li>
+  <li>Set up S3 lifecycle policies on the logging bucket</li>
+  <li>Test guardrail effectiveness with adversarial inputs before production</li>
+  <li>Monitor OpenSearch Serverless OCU consumption for cost management</li>
+</ul>
+
+<!-- 9. Configuration Reference -->
+<h2>Configuration Reference</h2>
+<table>
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Description</th><th>Default</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>name_prefix</td><td>string</td><td>Prefix for all resource names</td><td><em>required</em></td></tr>
+    <tr><td>enable_model_invocation_logging</td><td>bool</td><td>Enable model invocation logging to S3</td><td>true</td></tr>
+    <tr><td>log_s3_bucket_arn</td><td>string</td><td>ARN of the S3 bucket for invocation logs</td><td>""</td></tr>
+    <tr><td>knowledge_bases</td><td>map(object)</td><td>Knowledge base configs (name, embedding model, S3 source, chunking)</td><td>{}</td></tr>
+    <tr><td>agents</td><td>map(object)</td><td>Agent configs (name, foundation model, instruction, action groups)</td><td>{}</td></tr>
+    <tr><td>guardrails</td><td>map(object)</td><td>Guardrail configs (content filters, denied topics, PII filters)</td><td>{}</td></tr>
+    <tr><td>opensearch_collection_name</td><td>string</td><td>Name of the OpenSearch Serverless collection</td><td>""</td></tr>
+    <tr><td>opensearch_vector_index_name</td><td>string</td><td>Name of the vector index</td><td>"bedrock-knowledge-base-index"</td></tr>
+    <tr><td>tags</td><td>map(string)</td><td>Tags to apply to all resources</td><td>{}</td></tr>
+  </tbody>
+</table>
+
+<!-- 10. Deployment -->
+<h2>Deployment</h2>
+<h3>Quick Start</h3>
+<pre style="background:rgba(255,255,255,.04);padding:16px;border-radius:4px;overflow-x:auto;color:rgba(255,255,255,.7);font-size:11px">
+module "bedrock_platform" {
+  source = "github.com/kogunlowo123/terraform-aws-bedrock-platform"
+
+  name_prefix       = "my-platform"
+  log_s3_bucket_arn = "arn:aws:s3:::my-log-bucket"
+
+  knowledge_bases = {
+    docs = {
+      name                      = "documentation"
+      description               = "Product documentation"
+      embedding_model           = "amazon.titan-embed-text-v1"
+      s3_data_source_bucket_arn = "arn:aws:s3:::my-docs-bucket"
+    }
+  }
+
+  agents = {
+    assistant = {
+      name             = "assistant"
+      description      = "Customer assistant"
+      foundation_model = "anthropic.claude-3-sonnet-20240229-v1:0"
+      instruction      = "You are a helpful assistant."
+    }
+  }
+
+  opensearch_collection_name = "my-vectors"
+}
+</pre>
+<h3>Commands</h3>
+<pre style="background:rgba(255,255,255,.04);padding:16px;border-radius:4px;overflow-x:auto;color:rgba(255,255,255,.7);font-size:11px">
+terraform init      # Initialize providers and modules
+terraform plan      # Preview infrastructure changes
+terraform apply     # Deploy the Bedrock platform
+terraform destroy   # Tear down all resources
+</pre>
+
+<!-- 11. Links -->
+<h2>Links</h2>
+<ul>
+  <li><a href="https://github.com/kogunlowo123/terraform-aws-bedrock-platform" style="color:var(--accent)">GitHub Repository</a></li>
+  <li><a href="https://github.com/kogunlowo123/terraform-aws-bedrock-platform/blob/main/README.md" style="color:var(--accent)">README</a></li>
+  <li><a href="https://github.com/kogunlowo123/terraform-aws-bedrock-platform/tree/main/examples" style="color:var(--accent)">Examples</a></li>
+  <li><a href="https://github.com/kogunlowo123/terraform-aws-bedrock-platform/tree/main/modules" style="color:var(--accent)">Submodules (knowledge-base, agent, guardrails)</a></li>
+  <li><a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/bedrockagent_agent" style="color:var(--accent)">AWS Provider: aws_bedrockagent_agent</a></li>
+</ul>
+
+<footer>
+  <a href="https://github.com/kogunlowo123/terraform-aws-bedrock-platform">terraform-aws-bedrock-platform</a> &middot; Generated 2026-03-15 &middot; Kehinde Ogunlowo
+</footer>
+</div>
+</body>
+</html>
