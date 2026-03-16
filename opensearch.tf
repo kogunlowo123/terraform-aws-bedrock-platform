@@ -1,15 +1,15 @@
-# =============================================================================
+###############################################################################
 # OpenSearch Serverless - Vector Store for Knowledge Bases
-# =============================================================================
+###############################################################################
 
 resource "aws_opensearchserverless_collection" "this" {
-  count = local.create_opensearch ? 1 : 0
+  count = var.opensearch_collection_name != "" && length(var.knowledge_bases) > 0 ? 1 : 0
 
-  name        = local.opensearch_collection_name
+  name        = var.opensearch_collection_name != "" ? var.opensearch_collection_name : "${var.name_prefix}-bedrock-vectors"
   description = "Vector store for ${var.name_prefix} Bedrock knowledge bases"
   type        = "VECTORSEARCH"
 
-  tags = local.common_tags
+  tags = var.tags
 
   depends_on = [
     aws_opensearchserverless_security_policy.encryption,
@@ -17,20 +17,21 @@ resource "aws_opensearchserverless_collection" "this" {
   ]
 }
 
-# -----------------------------------------------------------------------------
+###############################################################################
 # Encryption Policy
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_opensearchserverless_security_policy" "encryption" {
-  count = local.create_opensearch ? 1 : 0
+  count = var.opensearch_collection_name != "" && length(var.knowledge_bases) > 0 ? 1 : 0
 
   name        = "${var.name_prefix}-encryption"
   type        = "encryption"
-  description = "Encryption policy for ${local.opensearch_collection_name}"
+  description = "Encryption policy for ${var.opensearch_collection_name != "" ? var.opensearch_collection_name : "${var.name_prefix}-bedrock-vectors"}"
 
   policy = jsonencode({
     Rules = [
       {
-        Resource     = ["collection/${local.opensearch_collection_name}"]
+        Resource     = ["collection/${var.opensearch_collection_name != "" ? var.opensearch_collection_name : "${var.name_prefix}-bedrock-vectors"}"]
         ResourceType = "collection"
       }
     ]
@@ -38,25 +39,26 @@ resource "aws_opensearchserverless_security_policy" "encryption" {
   })
 }
 
-# -----------------------------------------------------------------------------
+###############################################################################
 # Network Policy
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_opensearchserverless_security_policy" "network" {
-  count = local.create_opensearch ? 1 : 0
+  count = var.opensearch_collection_name != "" && length(var.knowledge_bases) > 0 ? 1 : 0
 
   name        = "${var.name_prefix}-network"
   type        = "network"
-  description = "Network policy for ${local.opensearch_collection_name}"
+  description = "Network policy for ${var.opensearch_collection_name != "" ? var.opensearch_collection_name : "${var.name_prefix}-bedrock-vectors"}"
 
   policy = jsonencode([
     {
       Rules = [
         {
-          Resource     = ["collection/${local.opensearch_collection_name}"]
+          Resource     = ["collection/${var.opensearch_collection_name != "" ? var.opensearch_collection_name : "${var.name_prefix}-bedrock-vectors"}"]
           ResourceType = "collection"
         },
         {
-          Resource     = ["collection/${local.opensearch_collection_name}"]
+          Resource     = ["collection/${var.opensearch_collection_name != "" ? var.opensearch_collection_name : "${var.name_prefix}-bedrock-vectors"}"]
           ResourceType = "dashboard"
         }
       ]
@@ -65,21 +67,22 @@ resource "aws_opensearchserverless_security_policy" "network" {
   ])
 }
 
-# -----------------------------------------------------------------------------
+###############################################################################
 # Access Policy
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_opensearchserverless_access_policy" "this" {
-  count = local.create_opensearch ? 1 : 0
+  count = var.opensearch_collection_name != "" && length(var.knowledge_bases) > 0 ? 1 : 0
 
   name        = "${var.name_prefix}-access"
   type        = "data"
-  description = "Data access policy for ${local.opensearch_collection_name}"
+  description = "Data access policy for ${var.opensearch_collection_name != "" ? var.opensearch_collection_name : "${var.name_prefix}-bedrock-vectors"}"
 
   policy = jsonencode([
     {
       Rules = [
         {
-          Resource     = ["collection/${local.opensearch_collection_name}"]
+          Resource     = ["collection/${var.opensearch_collection_name != "" ? var.opensearch_collection_name : "${var.name_prefix}-bedrock-vectors"}"]
           ResourceType = "collection"
           Permission = [
             "aoss:CreateCollectionItems",
@@ -89,7 +92,7 @@ resource "aws_opensearchserverless_access_policy" "this" {
           ]
         },
         {
-          Resource     = ["index/${local.opensearch_collection_name}/*"]
+          Resource     = ["index/${var.opensearch_collection_name != "" ? var.opensearch_collection_name : "${var.name_prefix}-bedrock-vectors"}/*"]
           ResourceType = "index"
           Permission = [
             "aoss:CreateIndex",

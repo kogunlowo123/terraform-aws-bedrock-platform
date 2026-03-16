@@ -1,10 +1,7 @@
-# =============================================================================
-# Amazon Bedrock Platform - Main Resources
-# =============================================================================
-
-# -----------------------------------------------------------------------------
+###############################################################################
 # Model Invocation Logging
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_bedrock_model_invocation_logging_configuration" "this" {
   count = var.enable_model_invocation_logging ? 1 : 0
 
@@ -17,9 +14,10 @@ resource "aws_bedrock_model_invocation_logging_configuration" "this" {
   }
 }
 
-# -----------------------------------------------------------------------------
+###############################################################################
 # Knowledge Bases
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_bedrockagent_knowledge_base" "this" {
   for_each = var.knowledge_bases
 
@@ -39,7 +37,7 @@ resource "aws_bedrockagent_knowledge_base" "this" {
     type = "OPENSEARCH_SERVERLESS"
 
     opensearch_serverless_configuration {
-      collection_arn    = local.create_opensearch ? aws_opensearchserverless_collection.this[0].arn : ""
+      collection_arn    = var.opensearch_collection_name != "" && length(var.knowledge_bases) > 0 ? aws_opensearchserverless_collection.this[0].arn : ""
       vector_index_name = var.opensearch_vector_index_name
 
       field_mapping {
@@ -50,7 +48,7 @@ resource "aws_bedrockagent_knowledge_base" "this" {
     }
   }
 
-  tags = local.common_tags
+  tags = var.tags
 
   depends_on = [
     aws_iam_role_policy.knowledge_base_s3,
@@ -63,8 +61,8 @@ resource "aws_bedrockagent_knowledge_base" "this" {
 resource "aws_bedrockagent_data_source" "this" {
   for_each = var.knowledge_bases
 
-  name                 = "${var.name_prefix}-${each.value.name}-ds"
-  knowledge_base_id    = aws_bedrockagent_knowledge_base.this[each.key].id
+  name              = "${var.name_prefix}-${each.value.name}-ds"
+  knowledge_base_id = aws_bedrockagent_knowledge_base.this[each.key].id
 
   data_source_configuration {
     type = "S3"
@@ -90,20 +88,21 @@ resource "aws_bedrockagent_data_source" "this" {
   }
 }
 
-# -----------------------------------------------------------------------------
+###############################################################################
 # Agents
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_bedrockagent_agent" "this" {
   for_each = var.agents
 
-  agent_name              = "${var.name_prefix}-${each.value.name}"
-  description             = each.value.description
-  agent_resource_role_arn  = aws_iam_role.agent[each.key].arn
-  foundation_model        = each.value.foundation_model
-  instruction             = each.value.instruction
+  agent_name                  = "${var.name_prefix}-${each.value.name}"
+  description                 = each.value.description
+  agent_resource_role_arn     = aws_iam_role.agent[each.key].arn
+  foundation_model            = each.value.foundation_model
+  instruction                 = each.value.instruction
   idle_session_ttl_in_seconds = each.value.idle_session_ttl
 
-  tags = local.common_tags
+  tags = var.tags
 
   depends_on = [
     aws_iam_role_policy.agent_bedrock,
@@ -113,14 +112,21 @@ resource "aws_bedrockagent_agent" "this" {
 
 resource "aws_bedrockagent_agent_action_group" "this" {
   for_each = {
-    for ag in local.agent_action_groups :
-    "${ag.agent_key}-${ag.action_group.name}" => ag
+    for ag in flatten([
+      for agent_key, agent in var.agents : [
+        for action_group in agent.action_groups : {
+          agent_key    = agent_key
+          agent_name   = agent.name
+          action_group = action_group
+        }
+      ]
+    ]) : "${ag.agent_key}-${ag.action_group.name}" => ag
   }
 
-  action_group_name          = each.value.action_group.name
-  description                = each.value.action_group.description
-  agent_id                   = aws_bedrockagent_agent.this[each.value.agent_key].agent_id
-  agent_version              = "DRAFT"
+  action_group_name = each.value.action_group.name
+  description       = each.value.action_group.description
+  agent_id          = aws_bedrockagent_agent.this[each.value.agent_key].agent_id
+  agent_version     = "DRAFT"
 
   dynamic "action_group_executor" {
     for_each = each.value.action_group.lambda_function_arn != null ? [1] : []
@@ -157,12 +163,13 @@ resource "aws_bedrockagent_agent_alias" "this" {
   agent_id         = aws_bedrockagent_agent.this[each.key].agent_id
   description      = "Latest alias for agent ${each.value.name}"
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
-# -----------------------------------------------------------------------------
+###############################################################################
 # Guardrails
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_bedrock_guardrail" "this" {
   for_each = var.guardrails
 
@@ -219,7 +226,7 @@ resource "aws_bedrock_guardrail" "this" {
     }
   }
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
 resource "aws_bedrock_guardrail_version" "this" {

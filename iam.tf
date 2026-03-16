@@ -1,6 +1,7 @@
-# -----------------------------------------------------------------------------
+###############################################################################
 # IAM Role for Bedrock Knowledge Base
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_iam_role" "knowledge_base" {
   for_each = var.knowledge_bases
 
@@ -24,7 +25,7 @@ resource "aws_iam_role" "knowledge_base" {
     ]
   })
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy" "knowledge_base_s3" {
@@ -74,7 +75,7 @@ resource "aws_iam_role_policy" "knowledge_base_bedrock" {
 }
 
 resource "aws_iam_role_policy" "knowledge_base_opensearch" {
-  for_each = local.create_opensearch ? var.knowledge_bases : {}
+  for_each = var.opensearch_collection_name != "" && length(var.knowledge_bases) > 0 ? var.knowledge_bases : {}
 
   name = "${var.name_prefix}-kb-${each.key}-opensearch-policy"
   role = aws_iam_role.knowledge_base[each.key].id
@@ -95,9 +96,10 @@ resource "aws_iam_role_policy" "knowledge_base_opensearch" {
   })
 }
 
-# -----------------------------------------------------------------------------
+###############################################################################
 # IAM Role for Bedrock Agent
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_iam_role" "agent" {
   for_each = var.agents
 
@@ -121,7 +123,7 @@ resource "aws_iam_role" "agent" {
     ]
   })
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy" "agent_bedrock" {
@@ -167,9 +169,10 @@ resource "aws_iam_role_policy" "agent_kb" {
   })
 }
 
-# -----------------------------------------------------------------------------
+###############################################################################
 # IAM Role for Bedrock Model Invocation Logging
-# -----------------------------------------------------------------------------
+###############################################################################
+
 resource "aws_iam_role" "logging" {
   count = var.enable_model_invocation_logging ? 1 : 0
 
@@ -193,7 +196,7 @@ resource "aws_iam_role" "logging" {
     ]
   })
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
 resource "aws_iam_role_policy" "logging_s3" {
